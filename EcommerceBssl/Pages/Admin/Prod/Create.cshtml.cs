@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using EcommerceBssl.Data;
+using Microsoft.AspNetCore.Http;
+using EcommerceBssl.UtilityMethods;
 
 namespace EcommerceBssl.Pages.Admin.Prod
 {
@@ -23,9 +25,11 @@ namespace EcommerceBssl.Pages.Admin.Prod
         ViewData["SubCategoryList"] = new SelectList(_context.SubCategories, "Id", "Name");
             return Page();
         }
-
         [BindProperty]
         public Product Product { get; set; }
+
+        [BindProperty]
+        public List<IFormFile> ProductImages { get; set; }
 
         public async Task<IActionResult> OnPostAsync()
         {
@@ -33,8 +37,22 @@ namespace EcommerceBssl.Pages.Admin.Prod
             {
                 return Page();
             }
-
             _context.Products.Add(Product);
+            await _context.SaveChangesAsync();
+
+
+            var prdId = Product.Id;
+
+            var images = new List<Image>();
+            foreach (var img in ProductImages)
+            {
+                if (img != null && img.Length > 0)
+                {
+                    var filePath = await FileUpload.UploadFile(img, "productimages");
+                    images.Add(new Image { Link = filePath, ProductId = prdId });
+                }
+            }
+            _context.Images.AddRange(images);
             await _context.SaveChangesAsync();
 
             return RedirectToPage("./Index");
